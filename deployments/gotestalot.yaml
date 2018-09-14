@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gotestalot
+  labels:
+    app: gotestalot
+spec:
+  containers:
+  - name: gotestalot
+    image: cr.nick-santos.com/gotestalot
+    command: ["/go/bin/gotestalot"]
+    args: ["--web_dir=/go/src/github.com/nicks/gotestalot/web", "github.com/windmilleng/tilt"]
+    ports:
+    - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gotestalot-lb
+  labels:
+    app: gotestalot
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+  selector:
+    app: gotestalot
