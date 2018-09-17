@@ -2,4 +2,24 @@
 body {
   font-family: system, -apple-system, 'Roboto', sans-serif;
   color: rgba(0, 0, 0, 0.8);
+  margin: 0;
+  padding: 0;
+  background-color: #f3f3f3;
+  font-size: 16px;
+}
+
+.header {
+  padding: 3rem;
+  border: 0.5rem solid black;
+  margin: 0;
+}
+
+.header.unknown {
+  background-color: #00BFFF;
+  border-color: #008FFF;
+}
+
+.output {
+  padding: 3rem;
+  background-color: #f3f3f3;
 }

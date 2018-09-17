@@ -13,4 +13,4 @@ install:
 	go install github.com/nicks/gotestalot
 
 watch:
-	tilt up --watch main
+	tilt up --watch main --debug

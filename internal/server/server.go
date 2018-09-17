@@ -22,6 +22,7 @@ func NewServer(pkg, webDir string) Server {
 	router.HandleFunc("/", s.Index)
 	router.HandleFunc("/p/{pkg}", s.ViewPackage)
 	router.HandleFunc("/p/{pkg}/{name}", s.ViewTest)
+	router.HandleFunc("/api/all", s.RunAll)
 	router.HandleFunc("/api/p/{pkg}", s.RunPackage)
 	router.HandleFunc("/api/p/{pkg}/{name}", s.RunTest)
 
@@ -70,6 +71,9 @@ func (s Server) ViewTest(res http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		http.Error(res, err.Error(), 500)
 	}
+}
+
+func (s Server) RunAll(res http.ResponseWriter, req *http.Request) {
 }
 
 func (s Server) RunPackage(res http.ResponseWriter, req *http.Request) {

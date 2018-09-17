@@ -3,14 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/nicks/gotestalot/internal/server"
 )
 
-var portFlag = flag.Int("port", 8000, "Port to listen on")
+var portFlag = flag.Int("port", 8001, "Port to listen on")
 var webDirFlag = flag.String("web_dir", "web", "Directory for web assets")
 
 func main() {
@@ -22,7 +21,6 @@ func main() {
 
 	args := flag.Args()
 	if len(args) != 1 {
-		log.Println("XXX", os.Args)
 		flag.Usage()
 		os.Exit(1)
 	}

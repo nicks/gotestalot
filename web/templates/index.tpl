@@ -6,9 +6,13 @@
   </head>
 
   <body>
-    <h1>
-      Gotestalot &mdash; {{.Package}}
+    <h1 class="header unknown">
+      🕒 Gotestalot &mdash; {{.Package}}
     </h1>
+
+    <div class="output">
+      Waiting...
+    </div>
   </body>
 
 </html>
