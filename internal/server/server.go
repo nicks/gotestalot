@@ -2,14 +2,15 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io"
 	"log"
 	"net/http"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/mux"
@@ -21,11 +22,20 @@ type Server struct {
 
 	Package string
 	WebDir  string
+
+	results map[string]*Result
+	mu      *sync.Mutex
 }
 
 func NewServer(pkg, webDir string) Server {
 	router := mux.NewRouter()
-	s := Server{Package: pkg, WebDir: webDir, Router: router}
+	s := Server{
+		Package: pkg,
+		WebDir:  webDir,
+		Router:  router,
+		mu:      &sync.Mutex{},
+		results: make(map[string]*Result),
+	}
 
 	router.HandleFunc("/", s.Index)
 	router.HandleFunc("/p/{pkg}", s.ViewPackage)
@@ -94,6 +104,58 @@ func (s Server) RunPackage(res http.ResponseWriter, req *http.Request) {
 func (s Server) RunTest(res http.ResponseWriter, req *http.Request) {
 }
 
+func (s Server) createTestResult(extraArgs []string) (*Result, bool) {
+	key := strings.Join(extraArgs, ",")
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	result, ok := s.results[key]
+	if ok {
+		return result, false
+	}
+
+	result = NewResult()
+	s.results[key] = result
+	return result, true
+}
+
+func (s Server) ensureTestCommandStarted(extraArgs []string) *ResultReader {
+	result, isNew := s.createTestResult(extraArgs)
+	if !isNew {
+		return result.NewReader()
+	}
+
+	testArgs := []string{
+		"test",
+		"-json",
+	}
+	testArgs = append(testArgs, extraArgs...)
+	cmd := exec.CommandContext(context.Background(), "go", testArgs...)
+	stderr := bytes.NewBuffer(nil)
+	cmd.Stdout = result
+	cmd.Stderr = stderr
+
+	go func() {
+		err := cmd.Run()
+		msg := NewSuccessMessage()
+		if err != nil {
+			msg = NewErrorMessage(err.Error())
+			_, isExitErr := err.(*exec.ExitError)
+			if isExitErr {
+				msg = NewErrorMessage(fmt.Sprintf("%s\nStderr:\n%s", err, stderr.String()))
+			}
+		}
+
+		encoder := json.NewEncoder(result)
+		err = encoder.Encode(msg)
+		if err != nil {
+			log.Printf("Write: %v", err)
+		}
+	}()
+
+	return result.NewReader()
+}
+
 func (s Server) streamTestCommand(res http.ResponseWriter, req *http.Request, extraArgs []string) {
 	conn, err := upgrader.Upgrade(res, req, nil)
 	if err != nil {
@@ -103,59 +165,36 @@ func (s Server) streamTestCommand(res http.ResponseWriter, req *http.Request, ex
 	defer conn.Close()
 
 	result := NewTestResultWriter(conn)
-	testArgs := []string{
-		"test",
-		"-json",
-	}
-	testArgs = append(testArgs, extraArgs...)
+	reader := s.ensureTestCommandStarted(extraArgs)
 
-	cmd := exec.CommandContext(req.Context(), "go", testArgs...)
-	reader, writer := io.Pipe()
-	stderr := bytes.NewBuffer(nil)
-	cmd.Stdout = writer
-	cmd.Stderr = stderr
-	done := make(chan struct{})
-
-	go func() {
-		defer close(done)
-
-		decoder := json.NewDecoder(reader)
-		for decoder.More() {
-			var msg json.RawMessage
-			err := decoder.Decode(&msg)
-			if err != nil {
-				result.WriteError(err.Error())
-				continue
-			}
-
-			result.WriteJSON(msg)
-		}
-	}()
-
-	err = cmd.Run()
-	if err != nil {
-		_, isExitErr := err.(*exec.ExitError)
-		if isExitErr {
-			result.WriteError(fmt.Sprintf("%s\nStderr:\n%s", err, stderr.String()))
-		} else {
+	decoder := json.NewDecoder(reader)
+	for decoder.More() {
+		var msg json.RawMessage
+		err := decoder.Decode(&msg)
+		if err != nil {
 			result.WriteError(err.Error())
+			continue
 		}
-	}
 
-	<-done
+		result.WriteJSON(msg)
+	}
 }
 
 type IndexData struct {
 	Package string
 }
 
-type ErrorMessage struct {
+type Message struct {
 	Action string
 	Output string
 }
 
-func NewErrorMessage(output string) ErrorMessage {
-	return ErrorMessage{Action: "error", Output: output}
+func NewErrorMessage(output string) Message {
+	return Message{Action: "error", Output: output}
+}
+
+func NewSuccessMessage() Message {
+	return Message{Action: "done"}
 }
 
 var upgrader = websocket.Upgrader{

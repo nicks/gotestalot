@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gotestalot-webpack
+  labels:
+    app: gotestalot-webpack
+spec:
+  selector:
+    matchLabels:
+      app: gotestalot-webpack
+  template:
+    metadata:
+      labels:
+        app: gotestalot-webpack
+    spec:
+      containers:
+      - name: webpack
+        image: gcr.io/windmill-public-containers/gotestalot-webpack
+        ports:
+        - containerPort: 8001
