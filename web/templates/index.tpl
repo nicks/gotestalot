@@ -7,12 +7,19 @@
 
   <body>
     <h1 class="header unknown">
-      🕒 Gotestalot &mdash; {{.Package}}
+      🕒 Gotestalot: {{.Package}}
     </h1>
 
-    <div class="output">
+    <div id="output" class="output">
       Waiting...
     </div>
+
+    <script src="/js/output.js"></script>
+    <script>
+      let el = document.querySelector("#output")
+      let view = new SummaryView(el)
+      view.load("/api/all")
+    </script>
   </body>
 
 </html>
