@@ -23,3 +23,21 @@ body {
   padding: 3rem;
   background-color: #f3f3f3;
 }
+
+.testCountView, .summaryEndView {
+  display: inline-block;
+  padding: 0.5em;
+  margin: 0.5em;
+  font-size: 1.5em;
+  line-height: 1.5;
+  border-left: 1px solid black;
+}
+
+.packageView {
+  display: block;
+  margin: 0.2em;
+}
+
+.packageView--skipped {
+  display: none;
+}

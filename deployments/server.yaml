@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gotestalot-server
+  labels:
+    app: gotestalot-server
+spec:
+  selector:
+    matchLabels:
+      app: gotestalot-server
+  template:
+    metadata:
+      labels:
+        app: gotestalot-server
+    spec:
+      containers:
+      - name: gotestalot-server
+        image: gcr.io/windmill-public-containers/gotestalot
+        command: ["/go/bin/gotestalot"]
+        args: ["--web_dir=/go/src/github.com/nicks/gotestalot/web", "--port=8000", "github.com/windmilleng/tilt"]
+        ports:
+        - containerPort: 8000
